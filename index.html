@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高雄市立聯合醫院護理科 - 病人用藥安全稽核與數據統整系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 相容版 SDK 可用一般 script 載入，適合直接開啟單一 HTML。 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js" onerror="window.firebaseSdkLoadError = true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-auth-compat.min.js" onerror="window.firebaseSdkLoadError = true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js" onerror="window.firebaseSdkLoadError = true"></script>
+    <script>
+        if (!window.firebaseSdkLoadError && window.firebase && firebase.auth && firebase.firestore) {
+            // 將 compat API 包成頁面現有的呼叫介面。
+            window.firebaseApp = {
+                initializeApp: config => firebase.initializeApp(config),
+                getAuth: app => app.auth(),
+                signInAnonymously: auth => auth.signInAnonymously(),
+                signInWithEmailAndPassword: (auth, email, password) => auth.signInWithEmailAndPassword(email, password),
+                signOut: auth => auth.signOut(),
+                getFirestore: app => app.firestore(),
+                collection: (db, ...segments) => db.collection(segments.join('/')),
+                doc: (db, ...segments) => db.doc(segments.join('/')),
+                setDoc: (ref, data) => ref.set(data),
+                deleteDoc: ref => ref.delete(),
+                getDoc: ref => ref.get(),
+                onSnapshot: (ref, next, error) => ref.onSnapshot(next, error)
+            };
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-table-wrapper {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            main {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .print-container {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+            .print-page-break {
+                break-before: page !important;
+                page-break-before: always !important;
+                margin-top: 0 !important;
+            }
+            body.print-review-only main > :not(#review-print-report) {
+                display: none !important;
+            }
+            body.print-review-only #review-print-report {
+                display: block !important;
+                margin: 0 !important;
+                font-size: 13px !important;
+            }
+            body.print-review-only #review-print-report table {
+                table-layout: fixed;
+                font-size: 13px !important;
+            }
+            body.print-review-only #review-print-report th,
+            body.print-review-only #review-print-report td {
+                padding: 2mm !important;
+            }
+            body.print-review-only #review-print-report tr {
+                break-inside: avoid;
+            }
+            body.print-review-only #review-print-report .review-print-cell {
+                min-height: 44mm;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+            }
+            body.print-review-only #review-print-report .review-print-signatures {
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                column-gap: 5mm !important;
+                margin-top: 6mm !important;
+                font-size: 12px !important;
+            }
+            body.print-review-only #review-print-report .review-print-signature {
+                display: flex !important;
+                align-items: baseline;
+                gap: 1mm;
+                min-width: 0;
+                white-space: nowrap;
+            }
+            body.print-review-only #review-print-report .review-print-name {
+                display: inline-block;
+                flex: 1;
+                min-width: 0;
+                max-width: 62mm;
+                border-bottom: 1px solid #000;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+            input::placeholder, textarea::placeholder {
+                color: transparent !important;
+            }
+            table {
+                font-size: 10px !important;
+                border-color: #000000 !important;
+            }
+            th, td {
+                border-color: #000000 !important;
+                padding: 4px 2px !important;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 1cm;
+            }
+        }
+    
+.medication-history-dialog{width:min(1100px,96vw);max-width:none;max-height:92vh;max-height:92dvh;padding:0;border:1px solid #cbddea;border-radius:16px;background:#fff;color:#243447;box-shadow:0 24px 80px #2139513b}
+.medication-history-dialog::backdrop{background:#172b4580}
+.medication-history-toolbar{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:16px 22px;border-bottom:1px solid #d8e6ef;background:#f0f8fc}
+.medication-history-toolbar h2{font-size:18px;font-weight:700;margin:0;color:#155b80}.medication-history-toolbar p{font-size:12px;color:#617385;margin:4px 0 0}
+.medication-history-buttons{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}.medication-history-buttons button{padding:9px 14px;border:1px solid #bad1e0;background:#fff;color:#155b80;border-radius:8px;font:inherit;font-size:14px;cursor:pointer}
+.medication-history-buttons button:focus-visible{outline:2px solid #1685b6;outline-offset:2px}
+.medication-history-content{padding:24px;max-height:calc(92vh - 95px);max-height:calc(92dvh - 95px);overflow:auto;overscroll-behavior:contain}
+.medication-history-heading{text-align:center;margin-bottom:24px}.medication-history-heading h2{font-size:23px;font-weight:700;margin:0}.medication-history-heading p{font-size:12px;margin:5px 0}.medication-history-heading h3{font-size:22px;font-weight:700;margin:12px 0}.medication-history-heading>span{font-size:13px;color:#496f88}
+.medication-history-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 24px;padding:18px;background:#f5f8fb;border:1px solid #dce5ec;border-radius:12px;margin-bottom:18px}.medication-history-field{min-width:0}.medication-history-field>span{font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:#42566b}.medication-history-field>div{min-height:38px;padding:9px 12px;background:#fff;border:1px solid #cedce6;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}
+.medication-history-counts{display:flex;flex-wrap:wrap;gap:8px 22px;margin:15px 0 22px;font-size:14px}.medication-history-question{border:1px solid #d9e3eb;border-radius:12px;padding:20px;margin-bottom:16px;background:#fff;break-inside:avoid}.medication-history-question h4{font-size:16px;font-weight:700;line-height:1.7;margin:0 0 10px;color:#243447}.medication-history-na-note{font-size:12px;background:#f0f9ff;color:#236586;border-radius:6px;padding:5px 8px;width:fit-content;margin:0 0 12px}.medication-history-choices{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.medication-history-choice{display:inline-block;border:1px solid #e1e7ed;border-radius:7px;padding:6px 12px;font-size:14px;color:#74808f;background:#fff}.medication-history-choice.selected{font-weight:700}.medication-history-choice.status-done{background:#eaf7f0;border-color:#aed8bf;color:#17623c}.medication-history-choice.status-undone{background:#fff0f0;border-color:#efb9b9;color:#a12424}.medication-history-choice.status-na{background:#fff8e6;border-color:#e4d19c;color:#876512}.medication-history-remark{background:#f7f9fb;border:1px solid #e2e9f0;padding:10px 12px;border-radius:7px;margin-top:12px}.medication-history-remark strong{font-size:12px;color:#607185;font-weight:500}.medication-history-remark>div{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.7;margin-top:4px}.medication-history-warning{padding:10px;border:1px solid #e3c785;border-radius:6px;background:#fff9e9;color:#705520;font-size:13px;margin-bottom:12px}.medication-history-record-id{margin-top:22px;border-top:1px solid #e0e8ed;padding-top:15px}.medication-history-record-id .medication-history-field>div{border:0;padding:0;font-size:12px}
+@media(max-width:650px){.medication-history-dialog{width:98vw;max-height:96vh;max-height:96dvh;border-radius:10px}.medication-history-toolbar{padding:12px;align-items:flex-start}.medication-history-toolbar h2{font-size:15px}.medication-history-buttons button{font-size:12px;padding:8px}.medication-history-content{padding:14px;max-height:calc(96vh - 100px);max-height:calc(96dvh - 100px)}.medication-history-meta{grid-template-columns:1fr;gap:12px;padding:14px}.medication-history-question{padding:15px}.medication-history-question h4{font-size:15px}.medication-history-heading h2{font-size:19px}.medication-history-heading h3{font-size:20px}}
+@media print{body.print-medication-history>header,body.print-medication-history>main,body.print-medication-history>footer{display:none!important}body.print-medication-history .medication-history-dialog[open]{display:block!important;position:static!important;inset:auto!important;width:100%!important;max-width:none!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important}body.print-medication-history .medication-history-toolbar{display:none!important}body.print-medication-history .medication-history-content{max-height:none!important;height:auto!important;overflow:visible!important;padding:0!important}body.print-medication-history .medication-history-meta{grid-template-columns:repeat(2,minmax(0,1fr));padding:8px;gap:6px 14px;margin-bottom:10px}body.print-medication-history .medication-history-field>div{font-size:9pt;min-height:0;padding:4px 6px}body.print-medication-history .medication-history-field>span{font-size:8pt;margin-bottom:2px}body.print-medication-history .medication-history-question{padding:9px;margin-bottom:9px;break-inside:avoid}body.print-medication-history .medication-history-question h4{font-size:10pt;line-height:1.4;margin-bottom:5px}body.print-medication-history .medication-history-na-note{font-size:8pt;padding:2px 4px;margin-bottom:4px}body.print-medication-history .medication-history-choices{margin:5px 0;gap:6px}body.print-medication-history .medication-history-choice{font-size:9pt;padding:2px 6px;color:#000}body.print-medication-history .medication-history-choice.selected{border:2px solid #333;color:#000}body.print-medication-history .medication-history-remark{padding:5px 7px;margin-top:5px}body.print-medication-history .medication-history-remark>div{font-size:9pt;line-height:1.4}body.print-medication-history .medication-history-heading{margin-bottom:10px}body.print-medication-history .medication-history-heading h2{font-size:14pt}body.print-medication-history .medication-history-heading h3{font-size:13pt;margin:6px 0}body.print-medication-history .medication-history-counts{font-size:9pt;margin:8px 0}body.print-medication-history .medication-history-dialog::backdrop{display:none}}
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <header class="bg-sky-600 text-white shadow-md no-print sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/10 p-2 rounded-xl backdrop-blur">
+                    <i class="fa-solid fa-hospital text-2xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold tracking-wide">高雄市立聯合醫院護理科</h1>
+                    <p class="text-xs text-sky-100">病人用藥安全稽核與數據統整系統 <span class="opacity-75">v2026.11.06-完整歷史明細版</span></p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <span id="cloud-status" class="flex items-center gap-1.5 bg-sky-700 px-3 py-1.5 rounded-full text-xs text-white shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-amber-300 animate-pulse"></span> Firebase 連線中
+                </span>
+                <button id="retry-cloud-button" type="button" onclick="initFirebase()" class="hidden bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer">重新連線</button>
+                <nav class="flex flex-wrap justify-center gap-2">
+                    <button id="nav-form" onclick="switchTab('form')" class="bg-white text-sky-800 font-bold px-4 py-1.5 rounded-md shadow transition flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm">
+                        <i class="fa-solid fa-clipboard-check"></i> 填寫稽核表
+                    </button>
+                    <button id="nav-review" onclick="switchTab('review')" class="bg-sky-700 hover:bg-sky-800 text-white font-medium px-4 py-1.5 rounded-md shadow transition flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm">
+                        <i class="fa-solid fa-file-lines"></i> 護理品質稽核紀錄單
+                    </button>
+                    <button id="nav-admin" onclick="switchTab('admin')" class="bg-sky-700 hover:bg-sky-800 text-white font-medium px-4 py-1.5 rounded-md shadow transition flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm">
+                        <i class="fa-solid fa-chart-bar"></i> 後台數據統整 🔒
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <div id="review-print-report" class="hidden print-container text-black"></div>
+
+        <div id="section-form" class="space-y-6">
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-200 relative">
+                <div class="absolute right-6 top-6 text-right text-[10px] font-medium leading-tight text-slate-500 no-print hidden sm:flex flex-col items-end gap-2">
+                    <div>
+                        <div>109.12.18 制定</div>
+                        <div>115.02.23 第五次修定護理</div>
+                        <div>行政會議通過</div>
+                    </div>
+                    <div id="form-cloud-note" role="status" class="bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-sm">
+                        <i class="fa-solid fa-cloud"></i> Firebase 連線中；送出成功才算儲存
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-5 mb-6">
+                    <div class="pr-0 sm:pr-48">
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-900 tracking-wide">病人用藥安全查核表</h2>
+                        <div class="mt-2.5 sm:hidden space-y-2">
+                            <div class="text-[10px] font-medium leading-tight text-slate-400">
+                                109.12.18 制定 | 115.02.23 第五次修定護理 (行政會議通過)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">稽核單位 <span class="text-red-500">*</span></label>
+                        <select id="audit-unit" onchange="onUnitChange()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">被稽核者姓名 / 床號 <span class="text-red-500">*</span></label>
+                        <input type="text" id="audit-target" maxlength="100" placeholder="例: 王OO-102床" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">稽核人員姓名 <span class="text-red-500">*</span></label>
+                        <input type="text" id="audit-staff" maxlength="50" placeholder="請輸入姓名" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">查核日期 <span class="text-red-500">*</span></label>
+                        <input type="date" id="audit-date" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800">
+                    </div>
+                </div>
+
+                <div id="questions-cards-container" class="space-y-4">
+                </div>
+
+                <div class="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-5">
+                    <button onclick="resetForm()" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition cursor-pointer">
+                        重設
+                    </button>
+                    <button id="submit-audit-button" onclick="submitAuditForm()" class="bg-sky-600 hover:bg-sky-700 text-white font-medium px-8 py-2.5 rounded-lg shadow transition text-sm cursor-pointer flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane"></i> 送出並儲存至 Firebase
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-review" class="hidden space-y-6">
+                <!-- 護理品質稽核紀錄單：前台可填寫，歷史紀錄僅限後台管理員。 -->
+                <div id="review-report" class="bg-white p-4 md:p-8 rounded-xl shadow-sm border border-slate-200 print-container mt-8 text-black">
+                    <div class="text-center mb-6 relative">
+                        <h2 class="text-xl font-extrabold tracking-wide">高雄市立聯合醫院護理科</h2>
+                        <p class="text-xs font-medium mt-0.5">（高雄榮民總醫院營運管理）</p>
+                        <h3 class="text-lg font-bold tracking-widest mt-2">護理品質稽核紀錄單</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm mb-5">
+                        <div><span class="font-bold">項目：</span><span class="border-b border-black px-2">病人用藥安全查核表</span></div>
+                        <label class="flex items-center gap-2"><span class="font-bold whitespace-nowrap">單位：</span><input id="review-unit" type="text" maxlength="100" placeholder="可自行輸入單位" oninput="markReviewDirty()" aria-label="稽核紀錄單單位" class="border-b border-black flex-1 min-w-0 bg-transparent px-1 focus:outline-none focus:bg-amber-50"></label>
+                        <label class="flex items-center gap-2"><span class="font-bold whitespace-nowrap">份數：</span><input id="review-count" type="number" min="0" step="1" oninput="markReviewDirty()" aria-label="稽核紀錄單份數" class="border-b border-black w-24 bg-transparent px-1 focus:outline-none focus:bg-amber-50">份</label>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold">年月：</span>
+                            <input id="review-month-picker" type="month" onchange="onReviewMonthChange()" aria-label="稽核紀錄單月份" class="no-print border border-slate-300 rounded px-2 py-1 text-sm bg-white font-bold text-sky-700">
+                            <span id="review-month-label" class="font-bold"></span>
+                        </div>
+                        <label class="flex items-center gap-2"><span class="font-bold whitespace-nowrap">審核值：</span><input id="review-score" type="number" min="0" max="100" step="0.01" placeholder="自行輸入" oninput="markReviewDirty()" aria-label="稽核紀錄單審核值" class="border-b border-black w-24 bg-transparent px-1 focus:outline-none focus:bg-amber-50">分</label>
+                        <label class="flex items-center gap-2"><span class="font-bold whitespace-nowrap">閾值：</span><input id="review-threshold" type="number" min="0" max="100" step="0.01" oninput="markReviewDirty()" aria-label="稽核紀錄單閾值" class="border-b border-black w-24 bg-transparent px-1 focus:outline-none focus:bg-amber-50">分</label>
+                    </div>
+
+                    <table class="w-full border-collapse border border-black text-sm">
+                        <tbody>
+                            <tr>
+                                <th scope="row" class="border border-black w-12 text-center p-2 leading-loose">審<br>核<br>結<br>果</th>
+                                <td class="border border-black p-2 align-top"><textarea id="review-result" rows="7" maxlength="4000" oninput="markReviewDirty()" aria-label="審核結果" class="w-full bg-transparent resize-y focus:outline-none focus:bg-amber-50 leading-relaxed"></textarea><div class="flex justify-end items-center gap-2 mt-3 text-xs">審核者簽章：<input id="review-auditor" type="text" maxlength="50" oninput="markReviewDirty()" aria-label="審核者簽章" class="border-b border-black w-36 bg-transparent focus:outline-none focus:bg-amber-50"></div></td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="border border-black text-center p-2 leading-loose">原<br>因<br>分<br>析</th>
+                                <td class="border border-black p-2 align-top"><textarea id="review-cause" rows="7" maxlength="4000" oninput="markReviewDirty()" aria-label="原因分析" class="w-full bg-transparent resize-y focus:outline-none focus:bg-amber-50 leading-relaxed"></textarea></td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="border border-black text-center p-2 leading-loose">改<br>善<br>措<br>施</th>
+                                <td class="border border-black p-2 align-top"><textarea id="review-improvement" rows="7" maxlength="4000" oninput="markReviewDirty()" aria-label="改善措施" class="w-full bg-transparent resize-y focus:outline-none focus:bg-amber-50 leading-relaxed"></textarea></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 text-xs font-bold">
+                        <label class="flex items-center gap-1">單位護理長：<input id="review-head" type="text" maxlength="50" oninput="markReviewDirty()" aria-label="單位護理長" class="flex-1 min-w-0 border-b border-black bg-transparent focus:outline-none focus:bg-amber-50"></label>
+                        <label class="flex items-center gap-1">小組長：<input id="review-group-leader" type="text" maxlength="50" oninput="markReviewDirty()" aria-label="小組長" class="flex-1 min-w-0 border-b border-black bg-transparent focus:outline-none focus:bg-amber-50"></label>
+                        <label class="flex items-center gap-1">品質組組長：<input id="review-quality-leader" type="text" maxlength="50" oninput="markReviewDirty()" aria-label="品質組組長" class="flex-1 min-w-0 border-b border-black bg-transparent focus:outline-none focus:bg-amber-50"></label>
+                    </div>
+                    <p class="mt-4 text-xs text-slate-500 no-print">請選擇月份並填寫單位；送出後可在下方及後台查看歷史紀錄；修改需審核帳號驗證。GitHub 網頁只顯示表單，資料保存在 Firebase。</p>
+                    <div class="mt-6 flex justify-end items-center gap-3 flex-wrap no-print">
+                        <span id="review-save-status" role="status" class="text-xs font-semibold text-emerald-700 opacity-0 transition-opacity">尚未送出</span>
+                        <button type="button" onclick="printReviewForm()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium px-5 py-2 rounded-lg shadow text-xs cursor-pointer">🖨️ A4 橫向列印此表</button>
+                        <button type="button" id="cancel-review-edit" hidden onclick="cancelReviewEdit()" class="border rounded-lg px-5 py-2 text-xs">取消修改</button>
+                        <button type="button" id="submit-review-button" onclick="submitReviewForm()" class="bg-sky-600 hover:bg-sky-700 text-white font-medium px-5 py-2 rounded-lg shadow text-xs cursor-pointer">📤 送出護理品質稽核紀錄單</button>
+                    </div>
+                </div>
+
+            <section class="bg-white p-4 md:p-8 rounded-xl border no-print">
+                <h3 class="text-lg font-bold mb-3">當月護理品質稽核紀錄</h3>
+                <p class="text-xs text-slate-500 mb-3">依上方月份顯示，與後台同步。</p>
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <button type="button" id="review-edit-login" onclick="openReviewerLogin()" class="bg-sky-700 hover:bg-sky-800 text-white rounded-lg px-4 py-2 font-semibold">🔒 登入編輯</button>
+                    <button type="button" id="review-edit-logout" hidden onclick="lockReviewer()" class="border rounded-lg px-4 py-2">登出編輯</button>
+                    <span id="review-edit-login-status" role="status" class="text-xs text-slate-500">尚未登入；編輯需密碼驗證</span>
+                </div>
+                <div id="front-review-history" class="space-y-3 text-sm" role="status">正在連線…</div>
+            </section>
+
+        </div>
+
+        <div id="section-admin" class="hidden space-y-6">
+            
+            <div id="admin-login-box" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200 text-center mt-12 no-print">
+                <div class="w-12 h-12 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">🔒</div>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">統計報表權限驗證</h3>
+                <p class="text-xs text-slate-500 mb-6">請使用已設定管理員權限的 Firebase 帳號登入。</p>
+                <input type="email" id="admin-email-input" autocomplete="username" placeholder="管理員電子郵件" onkeyup="if(event.key==='Enter') document.getElementById('admin-pwd-input').focus()" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <input type="password" id="admin-pwd-input" autocomplete="current-password" placeholder="Firebase 登入密碼" onkeyup="if(event.key==='Enter') verifyAdminPassword()" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <button onclick="verifyAdminPassword()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-medium py-2 rounded-md shadow transition text-sm cursor-pointer">
+                    登入後台
+                </button>
+            </div>
+
+            <div id="admin-content-box" class="hidden space-y-6">
+
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center flex-wrap gap-4 no-print">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <label class="text-xs font-bold text-slate-700">選擇統計/編輯月份：</label>
+                        <input type="month" id="filter-month" onchange="onFilterMonthChange()" class="bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-sky-500 font-bold text-sky-700">
+                        <span id="current-month-badge" class="bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-semibold px-2.5 py-1 rounded-md">
+                            📅 目前檢視月份：<span id="badge-month-text"></span>
+                        </span>
+                        <button onclick="loadSampleData()" class="text-xs bg-sky-50 hover:bg-sky-100 text-sky-700 px-3 py-1.5 rounded transition border border-sky-200 font-medium cursor-pointer">
+                            🎲 載入目前選擇月份示範數據 (N=60)
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="handlePrintReport()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-4 py-2 rounded-md shadow transition flex items-center gap-1.5 cursor-pointer">
+                            🖨️ 列印 A4 橫向稽核與分析報表
+                        </button>
+                        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-4 py-2 rounded-md shadow transition flex items-center gap-1.5 cursor-pointer">
+                            📥 匯出 Excel
+                        </button>
+                        <button onclick="lockAdmin()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-medium px-3 py-2 rounded-md transition cursor-pointer">
+                            🔒 鎖定
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 1. 用藥安全統計表 -->
+                <div class="bg-white p-4 md:p-8 rounded-xl shadow-sm border border-slate-200 print-container overflow-x-auto">
+                    
+                    <div class="text-center mb-4 min-w-[1000px] relative">
+                        <h2 class="text-xl font-extrabold text-black tracking-wide">高雄市立聯合醫院護理科</h2>
+                        <p class="text-xs font-medium text-black tracking-tight mt-0.5">(高雄榮民總醫院營運管理)</p>
+                        <h3 class="text-lg font-bold text-black tracking-wider mt-2">病 人 用 藥 安 全 查 核 統 計 表</h3>
+                        
+                        <div class="flex justify-between items-center mt-4 px-2 text-xs font-bold text-black">
+                            <span id="report-month-str">115年09月</span>
+                            <span>閾值＝98%</span>
+                            <span id="report-total-n" class="border border-black rounded-full px-3 py-0.5 font-bold">N=0</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto mobile-table-wrapper">
+                        <table class="w-full border-collapse border border-black text-xs text-black min-w-[1100px]">
+                            <thead>
+                                <tr class="bg-slate-50 text-center font-bold">
+                                    <th class="border border-black p-2 w-4/12" rowspan="2">項目</th>
+                                    <th class="border border-black p-1" colspan="14">未做到次數 <br><span class="text-[10px] font-normal">單位</span></th>
+                                    <th class="border border-black p-1 w-20" rowspan="2">做到達成率(科)</th>
+                                    <th class="border border-black p-1 w-16" rowspan="2">未完成率</th>
+                                </tr>
+                                <tr id="stats-table-unit-header" class="bg-slate-50 text-center font-bold">
+                                </tr>
+                            </thead>
+                            <tbody id="stats-table-body" class="text-center">
+                            </tbody>
+                            <tfoot>
+                                <tr id="stats-table-footer" class="font-bold bg-slate-50 border-t-2 border-black text-center">
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 pt-4 text-xs font-bold text-black text-left items-end min-w-[1000px]">
+                        <div class="flex flex-col gap-1">
+                            <span class="whitespace-nowrap">製表者：</span>
+                            <input type="text" id="signer-maker" value="" oninput="saveAdminReportInputs()" placeholder="請輸入姓名" class="border-b border-black bg-transparent px-1 py-0.5 w-full focus:outline-none focus:bg-amber-50 text-xs">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="whitespace-nowrap">組長：</span>
+                            <input type="text" id="signer-leader" value="" oninput="saveAdminReportInputs()" placeholder="請輸入姓名" class="border-b border-black bg-transparent px-1 py-0.5 w-full focus:outline-none focus:bg-amber-50 text-xs">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="whitespace-nowrap">品質組組長：</span>
+                            <input type="text" id="signer-qa" value="" oninput="saveAdminReportInputs()" placeholder="請輸入姓名" class="border-b border-black bg-transparent px-1 py-0.5 w-full focus:outline-none focus:bg-amber-50 text-xs">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="whitespace-nowrap">護理科主任：</span>
+                            <input type="text" id="signer-director" value="" oninput="saveAdminReportInputs()" placeholder="請簽章" class="border-b border-black bg-transparent px-1 py-0.5 w-full focus:outline-none focus:bg-amber-50 text-xs">
+                        </div>
+                    </div>
+
+                    <div class="text-right text-xs font-bold text-black mt-4 pr-6 flex justify-end items-center gap-1 min-w-[1000px]">
+                        <span>日期：</span>
+                        <input type="text" id="signer-date" value="" oninput="saveAdminReportInputs()" placeholder="例: 115. 9. 27" class="border-b border-black bg-transparent px-2 py-0.5 w-40 text-center focus:outline-none focus:bg-amber-50 font-bold text-xs">
+                    </div>
+                </div>
+
+                <!-- 3. 問題分析及改善措施表 -->
+                <div class="bg-white p-4 md:p-8 rounded-xl shadow-sm border border-slate-200 print-container print-page-break mt-8">
+                    
+                    <div class="text-center mb-6">
+                        <h2 class="text-xl font-extrabold text-black tracking-wide">高雄市立聯合醫院護理科問題分析及改善措施</h2>
+                        <div class="text-xs font-medium text-black tracking-tight mt-1 flex flex-wrap items-center justify-center gap-2">
+                            <span>(高雄榮民總醫院營運管理) — </span>
+                            <div class="inline-flex items-center gap-1.5 no-print bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-amber-800">
+                                <span class="font-bold">切換分析月份：</span>
+                                <input type="month" id="analysis-month-picker" onchange="onAnalysisMonthChange()" class="bg-white border border-amber-300 rounded px-1.5 py-0.5 text-xs font-bold text-amber-900">
+                            </div>
+                            <span id="ana-month-label" class="font-bold text-sky-700 print:inline hidden"></span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto mobile-table-wrapper">
+                        <table class="w-full border-collapse border border-black text-xs text-black min-w-[700px]">
+                            <tr>
+                                <td class="border border-black p-2 font-bold bg-slate-50 w-24">項目</td>
+                                <td class="border border-black p-2" colspan="3">
+                                    <div class="flex flex-wrap gap-4">
+                                        <label class="flex items-center gap-1"><input type="checkbox" name="analysis_item" value="護理紀錄" onchange="saveAdminReportInputs()"> 護理紀錄</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" name="analysis_item" value="護理技術" onchange="saveAdminReportInputs()"> 護理技術</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" name="analysis_item" value="病人安全照護" onchange="saveAdminReportInputs()"> 病人安全照護</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" name="analysis_item" value="能力進階" onchange="saveAdminReportInputs()"> 能力進階</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" name="analysis_item" value="護理服務滿意度" onchange="saveAdminReportInputs()"> 護理服務滿意度</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" name="analysis_item" value="其他" onchange="saveAdminReportInputs()"> 其他</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="border border-black p-2 font-bold bg-slate-50">主題名稱</td>
+                                <td class="border border-black p-2">
+                                    <input type="text" id="ana-title" value="" oninput="saveAdminReportInputs()" placeholder="請輸入主題名稱" class="w-full bg-transparent focus:outline-none focus:bg-amber-50 font-medium">
+                                </td>
+                                <td class="border border-black p-2 font-bold bg-slate-50 w-24">負責單位</td>
+                                <td class="border border-black p-2 w-48">
+                                    <input type="text" id="ana-unit" value="" oninput="saveAdminReportInputs()" placeholder="請輸入負責單位" class="w-full bg-transparent focus:outline-none focus:bg-amber-50 font-medium">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="border border-black p-2 font-bold bg-slate-50">問題</td>
+                                <td class="border border-black p-2">
+                                    <input type="text" id="ana-problem" value="" oninput="saveAdminReportInputs()" placeholder="請輸入問題描述" class="w-full bg-transparent focus:outline-none focus:bg-amber-50 font-medium">
+                                </td>
+                                <td class="border border-black p-2 font-bold bg-slate-50">執行期間</td>
+                                <td class="border border-black p-2">
+                                    <input type="text" id="ana-period" value="" oninput="saveAdminReportInputs()" placeholder="例: 115.9" class="w-full bg-transparent focus:outline-none focus:bg-amber-50 font-medium">
+                                </td>
+                            </tr>
+                            <tr class="align-top">
+                                <td class="border border-black p-3 font-bold bg-slate-50 text-center" colspan="2">現況及要因分析</td>
+                                <td class="border border-black p-3 font-bold bg-slate-50 text-center" colspan="2">對策擬定及實施</td>
+                            </tr>
+                            <tr class="align-top">
+                                <td class="border border-black p-3" colspan="2">
+                                    <textarea id="ana-current-desc" rows="6" oninput="saveAdminReportInputs()" placeholder="請輸入現況及要因分析..." class="w-full bg-transparent focus:outline-none focus:bg-amber-50 resize-y text-xs leading-relaxed"></textarea>
+                                </td>
+                                <td class="border border-black p-3" colspan="2">
+                                    <textarea id="ana-solution" rows="6" oninput="saveAdminReportInputs()" placeholder="請輸入對策擬定及實施..." class="w-full bg-transparent focus:outline-none focus:bg-amber-50 resize-y text-xs leading-relaxed"></textarea>
+                                </td>
+                            </tr>
+                            <tr class="align-top">
+                                <td class="border border-black p-3 font-bold bg-slate-50 text-center" colspan="2">討論及今後計畫</td>
+                                <td class="border border-black p-3 font-bold bg-slate-50 text-center" colspan="2">監測及效果確認</td>
+                            </tr>
+                            <tr class="align-top">
+                                <td class="border border-black p-3" colspan="2">
+                                    <textarea id="ana-future-plan" rows="4" oninput="saveAdminReportInputs()" placeholder="請輸入討論及今後計畫..." class="w-full bg-transparent focus:outline-none focus:bg-amber-50 resize-y text-xs leading-relaxed"></textarea>
+                                </td>
+                                <td class="border border-black p-3" colspan="2">
+                                    <textarea id="ana-effect" rows="4" oninput="saveAdminReportInputs()" placeholder="請輸入監測及效果確認..." class="w-full bg-transparent focus:outline-none focus:bg-amber-50 resize-y text-xs leading-relaxed"></textarea>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-4 text-xs font-bold text-black text-left items-end">
+                        <div class="flex flex-col gap-1">
+                            <span class="whitespace-nowrap">製表人：</span>
+                            <input type="text" id="ana-maker" value="" oninput="saveAdminReportInputs()" placeholder="請輸入姓名" class="border-b border-black bg-transparent px-1 py-0.5 w-full focus:outline-none focus:bg-amber-50 text-xs">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="whitespace-nowrap">組長：</span>
+                            <input type="text" id="ana-leader" value="" oninput="saveAdminReportInputs()" placeholder="請輸入姓名" class="border-b border-black bg-transparent px-1 py-0.5 w-full focus:outline-none focus:bg-amber-50 text-xs">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="whitespace-nowrap">副主任：</span>
+                            <input type="text" id="ana-qa" value="" oninput="saveAdminReportInputs()" placeholder="請輸入姓名" class="border-b border-black bg-transparent px-1 py-0.5 w-full focus:outline-none focus:bg-amber-50 text-xs">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="whitespace-nowrap">主任：</span>
+                            <input type="text" id="ana-director" value="" oninput="saveAdminReportInputs()" placeholder="請輸入姓名" class="border-b border-black bg-transparent px-1 py-0.5 w-full focus:outline-none focus:bg-amber-50 text-xs">
+                        </div>
+                    </div>
+                    <div class="text-right text-xs font-bold text-black mt-4 pr-2 flex justify-end items-center gap-1">
+                        <span>日期：</span>
+                        <input type="text" id="ana-date" value="" oninput="saveAdminReportInputs()" placeholder="例: 115. 9. 27" class="border-b border-black bg-transparent px-2 py-0.5 w-40 text-center focus:outline-none focus:bg-amber-50 text-xs">
+                    </div>
+
+                    <!-- 雲端永久儲存按鈕 -->
+                    <div class="mt-8 pt-4 border-t border-slate-200 flex justify-between items-center no-print flex-wrap gap-3">
+                        <div id="save-status-msg" class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg flex items-center gap-2 opacity-0 transition-opacity duration-300 shadow-sm">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i> <span>該月份資料已成功永久儲存至雲端資料庫！</span>
+                        </div>
+                        <button onclick="manualSaveAdminReport()" class="bg-sky-600 hover:bg-sky-700 text-white font-medium px-6 py-2.5 rounded-lg shadow transition text-xs cursor-pointer flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> 💾 永久儲存「<span id="save-btn-month-text"></span>」報表與分析資料
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 no-print">
+                    <h3 class="font-bold text-sm text-slate-900">護理品質稽核紀錄單・當月歷史紀錄</h3>
+                    <p class="text-xs text-slate-500 mt-1 mb-4">依上方月份顯示；僅管理員登入後可讀取。每次送出各自保留一筆，舊版月報中的內容亦列於此。</p>
+                    <div id="review-history-list" class="space-y-3 text-sm"></div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 no-print">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-sm text-slate-900">當月用藥安全專案稽核原始明細</h3>
+                        <button onclick="clearAllData()" class="text-xs text-red-600 hover:text-red-800 underline cursor-pointer">清空所有數據</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                    <th class="p-2">日期</th>
+                                    <th class="p-2">單位</th>
+                                    <th class="p-2">被稽核對象</th>
+                                    <th class="p-2">稽核人員</th>
+                                    <th class="p-2">未做到項目數</th>
+                                    <th class="p-2">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="records-table-body" class="divide-y divide-slate-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <dialog id="medication-history-dialog" class="medication-history-dialog" aria-labelledby="medication-history-title">
+      <div class="medication-history-toolbar"><div><h2 id="medication-history-title">用藥安全歷史稽核紀錄</h2><p>完整檢視已儲存的原始內容</p></div><div class="medication-history-buttons"><button type="button" onclick="printMedicationHistory()">列印這筆紀錄</button><button type="button" onclick="closeMedicationHistory()" autofocus>關閉</button></div></div>
+      <div id="medication-history-content" class="medication-history-content"></div>
+    </dialog>
+
+
+    <dialog id="reviewer-dialog" style="border:1px solid #cbd5e1;border-radius:12px;padding:24px;width:min(440px,90vw)">
+        <form id="reviewer-form">
+            <h3 class="text-lg font-bold mb-3">登入編輯</h3>
+            <p id="reviewer-login-help" class="text-sm mb-3">首次使用請輸入已建立的審核帳號與密碼；之後同一瀏覽器只需密碼。</p>
+            <label id="reviewer-email-label" class="block mb-3">首次設定：審核帳號電子郵件<input id="reviewer-email" type="email" required autocomplete="username" class="block w-full border rounded p-2"></label>
+            <button id="reviewer-change-account" type="button" hidden onclick="changeReviewerAccount()" class="text-sky-700 text-sm mb-3 underline">更換審核帳號</button>
+            <label class="block mb-3">編輯密碼<input id="reviewer-password" type="password" required autocomplete="current-password" class="block w-full border rounded p-2"></label>
+            <p id="reviewer-error" role="alert" class="text-red-700 text-sm mb-3"></p>
+            <div class="flex justify-end gap-3"><button type="button" id="reviewer-cancel" onclick="closeReviewerDialog()" class="border rounded p-2">取消</button><button id="reviewer-confirm" type="submit" class="bg-sky-700 text-white rounded p-2">登入編輯</button></div>
+        </form>
+    </dialog>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBbnsCVvom_r6aMFJMEgAlW2seF6t3fHnc",
+            authDomain: "kmuh-medication-safety-a4427.firebaseapp.com",
+            projectId: "kmuh-medication-safety-a4427",
+            storageBucket: "kmuh-medication-safety-a4427.firebasestorage.app",
+            messagingSenderId: "645622428321",
+            appId: "1:645622428321:web:9c19d2e584a5cf57da76e0",
+            measurementId: "G-F1WTL872NK"
+        };
+        const auditCollection = 'kmuh_records';
+        const reportCollection = 'kmuh_admin_meta';
+        const reviewCollection = 'kmuh_review_records';
+        let db, auth;
+        let allRecords = [];
+        let adminReportData = {};
+        let reviewRecords = [];
+        let isCloudReady = false;
+        let saveTimeout = null;
+        let recordsSynced = false;
+        let reportsSynced = false;
+        let unsubscribeRecords = null;
+        let unsubscribeReports = null;
+        let unsubscribeReviews = null;
+        let firebaseConnecting = false;
+        let submittingAudit = false;
+        let submittingReview = false;
+        let editingReview = null;
+        let pendingReview = null;
+        let reviewerApp, reviewerAuth, reviewerDb;
+        let reviewerBusy = false;
+        let pendingEditReview = null;
+        const reviewerEmailKey = "kmuh-reviewer-email:" + firebaseConfig.projectId;
+        let unsubscribeFrontReviews = null;
+        let frontReviewRecords = [];
+
+        function setCloudStatus(message, color = 'amber') {
+            const dot = color === 'emerald' ? 'bg-emerald-300' : color === 'red' ? 'bg-red-300' : 'bg-amber-300 animate-pulse';
+            const status = document.getElementById('cloud-status');
+            status.innerHTML = `<span class="w-2 h-2 rounded-full ${dot}"></span> `;
+            status.append(document.createTextNode(message));
+            const note = document.getElementById('form-cloud-note');
+            note.className = `border text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-sm ${color === 'emerald' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : color === 'red' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200'}`;
+            note.textContent = color === 'emerald' ? 'Firebase 已驗證；送出成功才算儲存' : color === 'red' ? '雲端目前不可用，請重新連線；尚未儲存' : '正在連線；送出成功才算儲存';
+            document.getElementById('retry-cloud-button').classList.toggle('hidden', color !== 'red');
+        }
+
+        function reportCloudError(error, action) {
+            console.error(action, error);
+            const code = error && error.code ? ` (${error.code})` : '';
+            const detail = error && error.message ? String(error.message).slice(0, 240) : '未知錯誤';
+            const reason = error && error.code === 'permission-denied'
+                ? 'Firestore 安全規則拒絕存取。'
+                : error && error.code === 'auth/operation-not-allowed'
+                    ? 'Firebase Authentication 尚未啟用匿名登入。'
+                    : error && error.code === 'auth/network-request-failed'
+                        ? '無法連到 Firebase Authentication。請確認網路，關閉可能阻擋 identitytoolkit.googleapis.com 的擴充功能或醫院網路限制，再按「重新連線」。'
+                    : detail.includes('Firebase SDK') || detail.includes('Firebase 模組')
+                        ? '請確認瀏覽器能載入 cdnjs.cloudflare.com 的 Firebase 程式。'
+                        : '請依下方錯誤內容檢查設定。';
+            setCloudStatus(`${action}失敗${code}`, 'red');
+            showCustomAlert(`${action}失敗${code}。\n原因：${detail}\n${reason}\n資料未確認寫入雲端。`);
+        }
+
+        async function initFirebase() {
+            if (firebaseConnecting) return;
+            firebaseConnecting = true;
+            isCloudReady = false;
+            setCloudStatus('Firebase 連線中');
+            try {
+                if (!window.firebaseApp) {
+                    throw new Error('Firebase SDK 無法從 cdnjs 載入；請確認網路是否阻擋 cdnjs.cloudflare.com。');
+                }
+                const fb = window.firebaseApp;
+                const app = firebase.apps.length ? firebase.app() : fb.initializeApp(firebaseConfig);
+                auth = fb.getAuth(app);
+                db = fb.getFirestore(app);
+                await fb.signInAnonymously(auth);
+                isCloudReady = true;
+                setCloudStatus('Firebase 已驗證，可送出稽核單', 'emerald');
+                startFrontReviewListener();
+            } catch (error) {
+                isCloudReady = false;
+                reportCloudError(error, 'Firebase 連線');
+            } finally {
+                firebaseConnecting = false;
+            }
+        }
+
+        function stopAdminListeners() {
+            if (unsubscribeRecords) unsubscribeRecords();
+            if (unsubscribeReports) unsubscribeReports();
+            if (unsubscribeReviews) unsubscribeReviews();
+            unsubscribeRecords = null;
+            unsubscribeReports = null;
+            unsubscribeReviews = null;
+            recordsSynced = false;
+            reportsSynced = false;
+        }
+
+        function startAdminListeners() {
+            stopAdminListeners();
+            const fb = window.firebaseApp;
+            setCloudStatus('管理員已登入，正在同步資料');
+            unsubscribeRecords = fb.onSnapshot(fb.collection(db, auditCollection), snapshot => {
+                allRecords = snapshot.docs.map(item => ({...item.data(), id:item.id}));
+                recordsSynced = true;
+                if (recordsSynced && reportsSynced) setCloudStatus('管理資料已同步', 'emerald');
+                if (isAdminLoggedIn) renderStatsTable();
+            }, error => reportCloudError(error, '讀取稽核紀錄'));
+            unsubscribeReports = fb.onSnapshot(fb.collection(db, reportCollection), snapshot => {
+                adminReportData = {};
+                snapshot.forEach(item => { adminReportData[item.id] = item.data(); });
+                reportsSynced = true;
+                if (recordsSynced && reportsSynced) setCloudStatus('管理資料已同步', 'emerald');
+                if (isAdminLoggedIn) {
+                    loadAdminReportInputs();
+                    renderReviewHistory();
+                }
+            }, error => reportCloudError(error, '讀取月報資料'));
+            unsubscribeReviews = fb.onSnapshot(fb.collection(db, reviewCollection), snapshot => {
+                reviewRecords = snapshot.docs.map(item => ({ ...item.data(), id: item.id }));
+                if (isAdminLoggedIn) renderReviewHistory();
+            }, error => reportCloudError(error, '讀取護理品質稽核紀錄單'));
+        }
+
+        function requireCloud() {
+            if (isCloudReady && db && auth.currentUser) return true;
+            showCustomAlert('尚未連上 Firebase，請按上方「重新連線」；表單內容仍在畫面上，本次資料尚未儲存。');
+            return false;
+        }
+
+        function requireAdmin() {
+            if (isAdminLoggedIn && requireCloud()) return true;
+            showCustomAlert('請先使用 Firebase 管理員帳號登入。');
+            return false;
+        }
+
+        const unitsList = [
+            "92病房",
+            "91病房",
+            "血液透析室",
+            "82病房",
+            "72病房",
+            "52病房",
+            "嬰兒室(含產房)",
+            "小兒加護病房",
+            "51病房",
+            "手術室",
+            "成人加護病房",
+            "注射室",
+            "急診室",
+            "放射科"
+        ];
+
+        const questions = [
+            { id: 1, text: "1. 衛材、藥品打開後註明開封到期日(含急救車、冰箱、工作車)且未過期及妥善保管" },
+            { id: 2, text: "2. 藥用冰箱溫度需於2-8℃範圍內，每天2次點班並有記錄" },
+            { id: 3, text: "3. 藥用冰箱無放置檢體、食物及其他物品" },
+            { id: 4, text: "4. 藥用冰箱故障，應先將藥品移出，借放其他單位或藥局，確保藥物有效性" },
+            { id: 5, text: "5. 給藥前完成病人相關評估及病人辨識(配戴手圈或其他辨識證明)" },
+            { id: 6, text: "6. 給藥時應核對醫囑, 姓名、藥物名稱、時間、劑量、途徑、給藥後完成線上簽章，未給藥須註明原因" },
+            { id: 7, text: "7. 病人使用靜脈輸液幫浦時，需填寫「病人靜脈輸液幫浦使用監測單」，並有兩位護理師共同確認核對簽名" },
+            { id: 8, text: "8. 高警訊藥物或麻醉鎮靜藥物放置處有標示，急救車藥品依規定標示及上鎖" },
+            { id: 9, text: "9. 觀察病人用藥反應，如有異常立即通知醫師處理，並記錄病人狀況、相關處理及評估結果等" },
+            { id: 10, text: "10. 若有給藥錯誤情況，應立即處理再通報藥物異常事件，並列入交班追蹤" }
+        ];
+
+        function getNotApplicableUnitsText(qId) {
+            switch(qId) {
+                case 2:
+                case 3:
+                case 4:
+                    return "放射科";
+                case 7:
+                    return "放射科, 手術室, 嬰兒室(含產房), 血液透析室";
+                case 8:
+                    return "注射室";
+                default:
+                    return "";
+            }
+        }
+
+        function isUnitNotApplicable(unit, qId) {
+            if (unit === "放射科" && [2, 3, 4, 7, 8].includes(qId)) return true;
+            if (unit === "手術室" && qId === 7) return true;
+            if (["嬰兒室(含產房)", "血液透析室"].includes(unit) && qId === 7) return true;
+            if (unit === "注射室" && qId === 8) return true;
+            return false;
+        }
+
+        let isAdminLoggedIn = false;
+
+        function initUnitSelect() {
+            const select = document.getElementById('audit-unit');
+            let html = '<option value="">請選擇單位</option>';
+            unitsList.forEach(u => {
+                html += `<option value="${u}">${u}</option>`;
+            });
+            select.innerHTML = html;
+            if(unitsList.length > 0) {
+                select.value = unitsList[0];
+            }
+        }
+
+        function switchTab(tab) {
+            const sectionForm = document.getElementById('section-form');
+            const sectionReview = document.getElementById('section-review');
+            const sectionAdmin = document.getElementById('section-admin');
+            const navForm = document.getElementById('nav-form');
+            const navReview = document.getElementById('nav-review');
+            const navAdmin = document.getElementById('nav-admin');
+            if (!['form', 'review', 'admin'].includes(tab)) return;
+            for (const [name, section, button] of [
+                ['form', sectionForm, navForm],
+                ['review', sectionReview, navReview],
+                ['admin', sectionAdmin, navAdmin]
+            ]) {
+                section.classList.toggle('hidden', name !== tab);
+                button.className = (name === tab
+                    ? 'bg-white text-sky-800 font-bold'
+                    : 'bg-sky-700 hover:bg-sky-800 text-white font-medium')
+                    + ' px-4 py-1.5 rounded-md shadow transition flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm';
+            }
+            if (tab === 'admin' && isAdminLoggedIn) renderStatsTable();
+        }
+
+        async function verifyAdminPassword() {
+            const emailInput = document.getElementById('admin-email-input');
+            const pwdInput = document.getElementById('admin-pwd-input');
+            const email = emailInput.value.trim();
+            const password = pwdInput.value;
+            if (!email || !password) {
+                showCustomAlert('請輸入 Firebase 管理員電子郵件與密碼。');
+                return;
+            }
+            if (!isCloudReady) {
+                showCustomAlert('Firebase 尚未連線，請重新整理後再試。');
+                return;
+            }
+            try {
+                const fb = window.firebaseApp;
+                const credential = await fb.signInWithEmailAndPassword(auth, email, password);
+                const adminDoc = await fb.getDoc(fb.doc(db, 'admins', credential.user.uid));
+                if (!adminDoc.exists || adminDoc.data().role !== 'admin') {
+                    throw new Error('這個帳號沒有管理員權限，請確認 admins/{UID} 文件的 role 為 admin。');
+                }
+                isAdminLoggedIn = true;
+                pwdInput.value = '';
+                document.getElementById('admin-login-box').classList.add('hidden');
+                document.getElementById('admin-content-box').classList.remove('hidden');
+                startAdminListeners();
+                startFrontReviewListener();
+                renderStatsTable();
+            } catch (error) {
+                console.error('Admin sign-in failed:', error);
+                try {
+                    await window.firebaseApp.signOut(auth);
+                    await window.firebaseApp.signInAnonymously(auth);
+                    startFrontReviewListener();
+                } catch (restoreError) {
+                    isCloudReady = false;
+                    reportCloudError(restoreError, '恢復表單連線');
+                    return;
+                }
+                const detail = error.code === 'auth/invalid-credential'
+                    ? '電子郵件或密碼不正確。'
+                    : error.code === 'permission-denied'
+                        ? '無法驗證管理員資料，請檢查 admins/{UID} 權限。'
+                        : error.message || '登入失敗。';
+                showCustomAlert(`管理員登入失敗：${detail}`);
+            }
+        }
+
+        async function lockAdmin() {
+            closeMedicationHistory();
+            stopAdminListeners();
+            isAdminLoggedIn = false;
+            allRecords = [];
+            adminReportData = {};
+            reviewRecords = [];
+            document.getElementById('admin-pwd-input').value = '';
+            document.getElementById('admin-login-box').classList.remove('hidden');
+            document.getElementById('admin-content-box').classList.add('hidden');
+            try {
+                await window.firebaseApp.signOut(auth);
+                await window.firebaseApp.signInAnonymously(auth);
+                setCloudStatus('雲端已連線，可送出稽核單', 'emerald');
+                startFrontReviewListener();
+            } catch (error) {
+                isCloudReady = false;
+                reportCloudError(error, '切換回稽核表');
+            }
+        }
+
+        document.getElementById('audit-date').valueAsDate = new Date();
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const defaultMonthStr = `${yyyy}-${mm}`;
+        document.getElementById('filter-month').value = defaultMonthStr;
+        document.getElementById('analysis-month-picker').value = defaultMonthStr;
+        document.getElementById('review-month-picker').value = defaultMonthStr;
+        document.getElementById('review-month-label').textContent = formatRocMonth(defaultMonthStr);
+
+        function onFilterMonthChange() {
+            const selectedMonth = document.getElementById('filter-month').value;
+            document.getElementById('analysis-month-picker').value = selectedMonth;
+            renderStatsTable();
+        }
+
+        function onAnalysisMonthChange() {
+            const selectedMonth = document.getElementById('analysis-month-picker').value;
+            document.getElementById('filter-month').value = selectedMonth;
+            renderStatsTable();
+        }
+
+        function onReviewMonthChange() {
+            const selectedMonth = document.getElementById('review-month-picker').value;
+            document.getElementById('review-month-label').textContent = formatRocMonth(selectedMonth);
+            markReviewDirty();
+            startFrontReviewListener();
+        }
+
+        function markReviewDirty() {
+            const status = document.getElementById('review-save-status');
+            status.textContent = '尚未送出；填寫內容只在目前畫面';
+            status.classList.remove('opacity-0');
+        }
+
+        function getReviewFormValues() {
+            const value = id => document.getElementById('review-' + id).value.trim();
+            return {
+                month: value('month-picker'), unit: value('unit'), count: value('count'),
+                score: value('score'), threshold: value('threshold'), result: value('result'),
+                auditor: value('auditor'), cause: value('cause'), improvement: value('improvement'),
+                head: value('head'), groupLeader: value('group-leader'),
+                qualityLeader: value('quality-leader')
+            };
+        }
+
+        async function submitReviewForm() {
+            if (submittingReview || !requireCloud()) return;
+            const data = getReviewFormValues();
+            if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(data.month) || !data.unit || data.unit.length > 100) {
+                showCustomAlert('請選擇正確月份並填寫單位（最多 100 字）。');
+                return;
+            }
+            const count = document.getElementById('review-count');
+            const score = document.getElementById('review-score');
+            const threshold = document.getElementById('review-threshold');
+            if ([count, score, threshold].some(input => !input.checkValidity()) ||
+                [data.count, data.score, data.threshold].some(v => v.length > 20)) {
+                showCustomAlert('份數須為非負整數；審核值與閾值須為 0 至 100 的數字。');
+                return;
+            }
+            if (editingReview) {
+                pendingReview = { ...data };
+                if (reviewerAuth?.currentUser) await saveReviewModification();
+                else openReviewerLogin();
+                return;
+            }
+            const id = `review_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+            const record = { id, ...data, createdAt: new Date().toISOString() };
+            const button = document.getElementById('submit-review-button');
+            submittingReview = true;
+            button.disabled = true;
+            button.classList.add('opacity-60');
+            const status = document.getElementById('review-save-status');
+            status.textContent = '正在送出至 Firebase…';
+            status.classList.remove('opacity-0');
+            try {
+                await window.firebaseApp.setDoc(window.firebaseApp.doc(db, reviewCollection, id), record);
+                for (const field of ['unit', 'count', 'score', 'threshold', 'result', 'auditor', 'cause', 'improvement', 'head', 'group-leader', 'quality-leader']) {
+                    document.getElementById('review-' + field).value = '';
+                }
+                status.textContent = '已送出並儲存至 Firebase；可繼續填寫下一份';
+                showCustomAlert('護理品質稽核紀錄單已儲存至 Firebase。管理員可在後台依月份查看。');
+            } catch (error) {
+                status.textContent = '送出失敗；內容仍在畫面上，請檢查後重試';
+                reportCloudError(error, '送出護理品質稽核紀錄單');
+            } finally {
+                submittingReview = false;
+                button.disabled = false;
+                button.classList.remove('opacity-60');
+            }
+        }
+
+        function saveAdminReportInputs() {
+            const filterMonth = document.getElementById('filter-month').value;
+            const data = {
+                ...(adminReportData[filterMonth] || {}),
+                signerMaker: document.getElementById('signer-maker').value,
+                signerLeader: document.getElementById('signer-leader').value,
+                signerQa: document.getElementById('signer-qa').value,
+                signerDirector: document.getElementById('signer-director').value,
+                signerDate: document.getElementById('signer-date').value,
+                
+                anaItems: Array.from(document.querySelectorAll('input[name="analysis_item"]:checked')).map(cb => cb.value),
+                anaTitle: document.getElementById('ana-title').value,
+                anaUnit: document.getElementById('ana-unit').value,
+                anaProblem: document.getElementById('ana-problem').value,
+                anaPeriod: document.getElementById('ana-period').value,
+                anaCurrentDesc: document.getElementById('ana-current-desc').value,
+                anaSolution: document.getElementById('ana-solution').value,
+                anaFuturePlan: document.getElementById('ana-future-plan').value,
+                anaEffect: document.getElementById('ana-effect').value,
+                anaMaker: document.getElementById('ana-maker').value,
+                anaLeader: document.getElementById('ana-leader').value,
+                anaQa: document.getElementById('ana-qa').value,
+                anaDirector: document.getElementById('ana-director').value,
+                anaDate: document.getElementById('ana-date').value
+            };
+
+            adminReportData[filterMonth] = data;
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                if (!requireAdmin()) return;
+                try {
+                    await window.firebaseApp.setDoc(window.firebaseApp.doc(db, reportCollection, filterMonth), data);
+                } catch (error) {
+                    reportCloudError(error, '自動儲存月報');
+                }
+            }, 800);
+        }
+
+        async function manualSaveAdminReport() {
+            if (!requireAdmin()) return false;
+            saveAdminReportInputs();
+            if (saveTimeout) clearTimeout(saveTimeout);
+            try {
+                const filterMonth = document.getElementById('filter-month').value;
+                await window.firebaseApp.setDoc(
+                    window.firebaseApp.doc(db, reportCollection, filterMonth),
+                    adminReportData[filterMonth]
+                );
+                const msg = document.getElementById('save-status-msg');
+                msg.classList.remove('opacity-0');
+                setTimeout(() => msg.classList.add('opacity-0'), 3500);
+                return true;
+            } catch (error) {
+                reportCloudError(error, '儲存月報');
+                return false;
+            }
+        }
+
+        function loadAdminReportInputs() {
+            const filterMonth = document.getElementById('filter-month').value;
+            document.getElementById('analysis-month-picker').value = filterMonth;
+            const rocMonth = formatRocMonth(filterMonth);
+            
+            document.getElementById('badge-month-text').innerText = rocMonth;
+            document.getElementById('report-month-str').innerText = rocMonth;
+            document.getElementById('ana-month-label').innerText = rocMonth;
+            document.getElementById('save-btn-month-text').innerText = rocMonth;
+
+            const data = adminReportData[filterMonth] || {};
+            
+            document.getElementById('signer-maker').value = data.signerMaker || "";
+            document.getElementById('signer-leader').value = data.signerLeader || "";
+            document.getElementById('signer-qa').value = data.signerQa || "";
+            document.getElementById('signer-director').value = data.signerDirector || "";
+            document.getElementById('signer-date').value = data.signerDate || "";
+
+            document.querySelectorAll('input[name="analysis_item"]').forEach(cb => cb.checked = false);
+            if (data.anaItems && Array.isArray(data.anaItems)) {
+                document.querySelectorAll('input[name="analysis_item"]').forEach(cb => {
+                    if (data.anaItems.includes(cb.value)) cb.checked = true;
+                });
+            }
+            document.getElementById('ana-title').value = data.anaTitle || "";
+            document.getElementById('ana-unit').value = data.anaUnit || "";
+            document.getElementById('ana-problem').value = data.anaProblem || "";
+            document.getElementById('ana-period').value = data.anaPeriod || "";
+            document.getElementById('ana-current-desc').value = data.anaCurrentDesc || "";
+            document.getElementById('ana-solution').value = data.anaSolution || "";
+            document.getElementById('ana-future-plan').value = data.anaFuturePlan || "";
+            document.getElementById('ana-effect').value = data.anaEffect || "";
+            document.getElementById('ana-maker').value = data.anaMaker || "";
+            document.getElementById('ana-leader').value = data.anaLeader || "";
+            document.getElementById('ana-qa').value = data.anaQa || "";
+            document.getElementById('ana-director').value = data.anaDirector || "";
+            document.getElementById('ana-date').value = data.anaDate || "";
+        }
+
+        function formatRocMonth(yyyyMm) {
+            if (!yyyyMm) return "115年09月";
+            const parts = yyyyMm.split('-');
+            if (parts.length === 2) {
+                const y = parseInt(parts[0]) - 1911;
+                const m = parseInt(parts[1]);
+                return `${y}年${String(m).padStart(2, '0')}月`;
+            }
+            return yyyyMm;
+        }
+
+        function renderFormQuestions() {
+            const container = document.getElementById('questions-cards-container');
+            const currentUnit = document.getElementById('audit-unit').value;
+            let html = '';
+
+            questions.forEach((q) => {
+                const naText = getNotApplicableUnitsText(q.id);
+                const isNA = isUnitNotApplicable(currentUnit, q.id);
+
+                html += `
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3 hover:border-sky-200 transition">
+                        <div class="font-bold text-slate-900 text-sm md:text-base leading-relaxed flex flex-col gap-2">
+                            <div>${q.text}</div>
+                            ${naText ? `<div class="inline-flex items-center gap-1 bg-sky-50 text-sky-700 text-xs font-medium px-2.5 py-1 rounded-md w-fit">
+                                <i class="fa-solid fa-circle-info text-sky-500"></i> 不適用單位：${naText}
+                            </div>` : ''}
+                        </div>
+                        
+                        <div class="flex items-center gap-6 pt-1 text-sm">
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="radio" name="q_${q.id}" value="done" ${!isNA ? 'checked' : ''} class="w-4 h-4 text-sky-600 focus:ring-sky-500 cursor-pointer">
+                                <span class="font-medium text-slate-800">做到</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="radio" name="q_${q.id}" value="undone" class="w-4 h-4 text-red-600 focus:ring-red-500 cursor-pointer">
+                                <span class="font-medium text-red-600">未做到</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="radio" name="q_${q.id}" value="na" ${isNA ? 'checked' : ''} class="w-4 h-4 text-amber-600 focus:ring-amber-500 cursor-pointer">
+                                <span class="font-medium text-amber-600">不適用</span>
+                            </label>
+                        </div>
+
+                        <div>
+                            <input type="text" id="remark_${q.id}" placeholder="備註說明 (選填)..." class="w-full bg-slate-50/80 border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition">
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function onUnitChange() {
+            renderFormQuestions();
+        }
+
+        async function submitAuditForm() {
+            if (submittingAudit) return;
+            const unit = document.getElementById('audit-unit').value;
+            const target = document.getElementById('audit-target').value.trim();
+            const date = document.getElementById('audit-date').value;
+            const staff = document.getElementById('audit-staff').value.trim();
+
+            if (!unit) {
+                showCustomAlert('請選擇稽核單位！');
+                return;
+            }
+            if (!target || !staff) {
+                showCustomAlert('請確實填寫「被稽核者姓名 / 床號」與「稽核人員姓名」！');
+                return;
+            }
+            if (!date) {
+                showCustomAlert('請填寫查核日期！');
+                return;
+            }
+
+            let results = [];
+            questions.forEach(q => {
+                const radios = document.getElementsByName(`q_${q.id}`);
+                let val = 'done';
+                for (let r of radios) {
+                    if (r.checked) val = r.value;
+                }
+                const remark = document.getElementById(`remark_${q.id}`) ? document.getElementById(`remark_${q.id}`).value.trim() : '';
+                results.push({ id: q.id, status: val, remark });
+            });
+
+            const recordId = 'rec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+            const record = {
+                id: recordId,
+                unit,
+                target,
+                date,
+                staff,
+                results
+            };
+
+            if (!requireCloud()) return;
+            if (navigator.onLine === false) {
+                showCustomAlert('目前瀏覽器顯示離線。請連上網路後再送出；表單內容尚未儲存。');
+                return;
+            }
+            submittingAudit = true;
+            const submitButton = document.getElementById('submit-audit-button');
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-60', 'cursor-wait');
+            setCloudStatus('正在寫入 Firebase，請勿關閉網頁');
+            try {
+                const docRef = window.firebaseApp.doc(db, auditCollection, recordId);
+                await window.firebaseApp.setDoc(docRef, record);
+                setCloudStatus('稽核單已儲存至 Firebase', 'emerald');
+                showCustomAlert('用藥安全稽核單已成功儲存至 Firebase！');
+                resetForm();
+            } catch (error) {
+                reportCloudError(error, '儲存稽核單');
+            } finally {
+                submittingAudit = false;
+                submitButton.disabled = false;
+                submitButton.classList.remove('opacity-60', 'cursor-wait');
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('audit-target').value = '';
+            document.getElementById('audit-staff').value = '';
+            document.getElementById('audit-date').valueAsDate = new Date();
+            renderFormQuestions();
+        }
+
+        function getMonthFilteredRecords() {
+            const filterMonth = document.getElementById('filter-month').value;
+            return allRecords.filter(r => r.date && r.date.startsWith(filterMonth));
+        }
+
+        function renderStatsTable() {
+            loadAdminReportInputs();
+            renderReviewHistory();
+            const filtered = getMonthFilteredRecords();
+            document.getElementById('report-total-n').innerText = `N=${filtered.length}`;
+
+            let unitHeaderHtml = '';
+            unitsList.forEach(u => {
+                const count = filtered.filter(r => r.unit === u).length;
+                unitHeaderHtml += `<th class="border border-black p-1 text-[10px] w-12">${u}<br><span class="font-normal">n=${count}</span></th>`;
+            });
+            document.getElementById('stats-table-unit-header').innerHTML = unitHeaderHtml;
+
+            let tbodyHtml = '';
+            let qUndoneTotals = new Array(11).fill(0);
+            let totalUndoneSum = 0;
+            let totalPossibleSum = 0;
+
+            questions.forEach(q => {
+                tbodyHtml += `<tr>`;
+                tbodyHtml += `<td class="border border-black p-1.5 text-left text-[11px] font-medium">${q.text}</td>`;
+
+                let qSum = 0;
+                unitsList.forEach(u => {
+                    const unitRecords = filtered.filter(r => r.unit === u);
+                    const isNA = isUnitNotApplicable(u, q.id);
+
+                    if (isNA) {
+                        tbodyHtml += `<td class="border border-black p-1 text-center font-bold text-slate-500">—</td>`;
+                    } else {
+                        const undoneCount = unitRecords.filter(r => {
+                            const res = r.results.find(item => item.id === q.id);
+                            return res && res.status === 'undone';
+                        }).length;
+
+                        qSum += undoneCount;
+                        const validN = unitRecords.length;
+                        totalPossibleSum += validN;
+
+                        if (undoneCount > 0) {
+                            tbodyHtml += `<td class="border border-black p-1 text-center font-bold text-red-600 bg-red-50/50">${undoneCount}</td>`;
+                        } else {
+                            tbodyHtml += `<td class="border border-black p-1 text-center text-slate-700">0</td>`;
+                        }
+                    }
+                });
+
+                qUndoneTotals[q.id] = qSum;
+                totalUndoneSum += qSum;
+
+                // 項目達成率
+                let unitValidTotalN = 0;
+                unitsList.forEach(u => {
+                    if (!isUnitNotApplicable(u, q.id)) {
+                        unitValidTotalN += filtered.filter(r => r.unit === u).length;
+                    }
+                });
+
+                let itemRate = "100.00%";
+                let itemUnrate = "0.00%";
+                if (unitValidTotalN > 0) {
+                    const doneCount = unitValidTotalN - qSum;
+                    itemRate = ((doneCount / unitValidTotalN) * 100).toFixed(2) + "%";
+                    itemUnrate = ((qSum / unitValidTotalN) * 100).toFixed(2) + "%";
+                } else {
+                    itemRate = "-";
+                    itemUnrate = "-";
+                }
+
+                tbodyHtml += `<td class="border border-black p-1 text-center font-bold">${itemRate}</td>`;
+                tbodyHtml += `<td class="border border-black p-1 text-center">${itemUnrate}</td>`;
+                tbodyHtml += `</tr>`;
+            });
+
+            document.getElementById('stats-table-body').innerHTML = tbodyHtml;
+
+            // Footer 統計行
+            let footerHtml = `<td class="border border-black p-1.5 text-center font-bold">未做到次數合計</td>`;
+            let colTotalUndoneSum = 0;
+            unitsList.forEach(u => {
+                let unitUndone = 0;
+                filtered.filter(r => r.unit === u).forEach(r => {
+                    r.results.forEach(res => {
+                        if (res.status === 'undone' && !isUnitNotApplicable(u, res.id)) {
+                            unitUndone++;
+                        }
+                    });
+                });
+                colTotalUndoneSum += unitUndone;
+                footerHtml += `<td class="border border-black p-1 text-center font-bold">${unitUndone}</td>`;
+            });
+
+            let overallRate = "100.00%";
+            if (totalPossibleSum > 0) {
+                overallRate = (((totalPossibleSum - totalUndoneSum) / totalPossibleSum) * 100).toFixed(2) + "%";
+            }
+            footerHtml += `<td class="border border-black p-1 text-center font-bold text-sky-700 bg-sky-50" colspan="2">各單位平均達成率: ${overallRate}</td>`;
+
+            document.getElementById('stats-table-footer').innerHTML = footerHtml;
+            renderRecordsTable(filtered);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[char]);
+        }
+
+        function getReviewHistory(month) {
+            const entries = reviewRecords.filter(item => item.month === month).map(item => ({ ...item, legacy: false }));
+            const old = adminReportData[month];
+            const oldKeys = ['reviewUnit', 'reviewCount', 'reviewScore', 'reviewThreshold', 'reviewResult', 'reviewAuditor', 'reviewCause', 'reviewImprovement', 'reviewHead', 'reviewGroupLeader', 'reviewQualityLeader'];
+            if (old && oldKeys.some(key => String(old[key] ?? '').trim())) {
+                entries.push({
+                    legacy: true, month, unit: old.reviewUnit || '', count: old.reviewCount || '',
+                    score: old.reviewScore || '', threshold: old.reviewThreshold || '',
+                    result: old.reviewResult || '', auditor: old.reviewAuditor || '',
+                    cause: old.reviewCause || '', improvement: old.reviewImprovement || '',
+                    head: old.reviewHead || '', groupLeader: old.reviewGroupLeader || '',
+                    qualityLeader: old.reviewQualityLeader || '', createdAt: ''
+                });
+            }
+            return entries.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        }
+
+        function renderReviewHistory() {
+            if (!isAdminLoggedIn) return;
+            const month = document.getElementById('filter-month').value;
+            const container = document.getElementById('review-history-list');
+            const entries = getReviewHistory(month);
+            if (!entries.length) {
+                container.innerHTML = '<p class="text-slate-500">這個月份尚無護理品質稽核紀錄單。</p>';
+                return;
+            }
+            const row = (label, value) => `<div class="py-1"><strong>${label}：</strong><span class="whitespace-pre-wrap break-words">${escapeHtml(value)}</span></div>`;
+            container.innerHTML = entries.map((item, index) => {
+                const time = item.legacy ? '舊版月報資料' :
+                    (item.createdAt && !Number.isNaN(Date.parse(item.createdAt))
+                        ? new Date(item.createdAt).toLocaleString('zh-TW') : '送出時間未記錄');
+                return `<details class="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                    <summary class="cursor-pointer font-semibold text-slate-800">${index + 1}. ${escapeHtml(item.unit || '未填單位')}｜${escapeHtml(item.score || '未填')} 分｜${escapeHtml(item.count || '未填')} 份｜${escapeHtml(time)}</summary>
+                    <div class="mt-3 pl-2 text-xs text-slate-700 leading-relaxed">
+                        ${row('月份', formatRocMonth(item.month))}${row('單位', item.unit)}${row('份數', item.count)}
+                        ${row('審核值（分）', item.score)}${row('閾值（分）', item.threshold)}
+                        ${row('審核結果', item.result)}${row('審核者簽章', item.auditor)}
+                        ${row('原因分析', item.cause)}${row('改善措施', item.improvement)}
+                        ${row('單位護理長', item.head)}${row('小組長', item.groupLeader)}
+                        ${row('品質組組長', item.qualityLeader)}
+                        ${!item.legacy ? `<button type="button" data-review-edit="${index}" class="mt-3 bg-sky-700 text-white rounded px-4 py-2">✏️ 編輯</button>` : '<span class="text-slate-500">舊版月報請從原月報欄位編輯</span>'}
+                        <button type="button" data-review-index="${index}" class="mt-3 bg-slate-800 text-white rounded px-4 py-2 font-semibold cursor-pointer">🖨️ A4 橫向列印此筆</button>
+                    </div></details>`;
+            }).join('');
+            container.querySelectorAll('[data-review-edit]').forEach(button => {
+                button.addEventListener('click', () => editReview(entries[Number(button.dataset.reviewEdit)]));
+            });
+            container.querySelectorAll('[data-review-index]').forEach(button => {
+                button.addEventListener('click', () => printReviewHistory(Number(button.dataset.reviewIndex)));
+            });
+        }
+
+
+        function startFrontReviewListener() {
+            if (unsubscribeFrontReviews) unsubscribeFrontReviews();
+            unsubscribeFrontReviews = null;
+            frontReviewRecords = [];
+            const container = document.getElementById('front-review-history');
+            const month = document.getElementById('review-month-picker').value;
+            if (!db || !auth?.currentUser || !month) {
+                container.textContent = '請先連線 Firebase 並選擇月份。';
+                return;
+            }
+            container.textContent = '正在同步當月紀錄…';
+            unsubscribeFrontReviews = db.collection(reviewCollection).where('month', '==', month).onSnapshot(snapshot => {
+                frontReviewRecords = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                renderFrontReviews();
+            }, error => {
+                frontReviewRecords = [];
+                container.textContent = error.code === 'permission-denied'
+                    ? 'Firebase 規則尚未允許讀取當月紀錄，請核對規則。'
+                    : '當月紀錄同步失敗，請重新連線。';
+            });
+        }
+
+        function renderFrontReviews() {
+            const container = document.getElementById('front-review-history');
+            const entries = frontReviewRecords.slice().sort((a,b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+            if (!entries.length) { container.textContent = '這個月份尚無護理品質稽核紀錄單。'; return; }
+            container.innerHTML = entries.map((item,index) => `<details class="border rounded-lg p-3 bg-slate-50">
+                <summary class="font-semibold cursor-pointer">${index+1}. ${escapeHtml(item.unit || '未填單位')}｜${escapeHtml(item.score || '未填')} 分｜${escapeHtml(item.count || '未填')} 份</summary>
+                <div class="whitespace-pre-wrap text-xs mt-3">${escapeHtml(item.result || '')}</div>
+                <p class="text-xs mt-2">修改次數：${Number(item.revisionCount)||0}｜最近修改者：${escapeHtml(item.updatedBy || '—')}</p>
+                <button type="button" data-front-edit="${index}" class="mt-3 bg-sky-700 text-white rounded px-4 py-2">✏️ 編輯</button>
+                <button type="button" data-front-print="${index}" class="mt-3 bg-slate-800 text-white rounded px-4 py-2">🖨️ A4 列印</button>
+            </details>`).join('');
+            container.querySelectorAll('[data-front-edit]').forEach(button => button.onclick = () => editReview(entries[Number(button.dataset.frontEdit)]));
+            container.querySelectorAll('[data-front-print]').forEach(button => button.onclick = () => renderReviewPrint(entries[Number(button.dataset.frontPrint)]));
+        }
+
+        const reviewFieldMap = {unit:'unit',count:'count',score:'score',threshold:'threshold',result:'result',auditor:'auditor',cause:'cause',improvement:'improvement',head:'head',groupLeader:'group-leader',qualityLeader:'quality-leader'};
+        function editReview(item) {
+            if (submittingReview || reviewerBusy || !item?.id) return;
+            if (!reviewerAuth?.currentUser) {
+                pendingEditReview = {...item};
+                openReviewerLogin();
+                return;
+            }
+            if (!confirm('將此筆紀錄帶回上方表單？目前尚未儲存的表單內容將被取代。')) return;
+            editingReview = {...item};
+            Object.entries(reviewFieldMap).forEach(([key,field]) => document.getElementById('review-'+field).value = item[key] ?? '');
+            document.getElementById('review-month-picker').value = item.month;
+            document.getElementById('review-month-label').textContent = formatRocMonth(item.month);
+            document.getElementById('submit-review-button').textContent = '💾 儲存修改';
+            document.getElementById('cancel-review-edit').hidden = false;
+            const status = document.getElementById('review-save-status');
+            status.textContent = '編輯已解鎖；完成後按「儲存修改」';
+            status.classList.remove('opacity-0');
+            switchTab('review');
+            startFrontReviewListener();
+            document.getElementById('review-report').scrollIntoView({behavior:'smooth'});
+        }
+        function cancelReviewEdit() {
+            if (reviewerBusy) return;
+            editingReview = null;
+            pendingReview = null;
+            Object.values(reviewFieldMap).forEach(field => document.getElementById('review-'+field).value = '');
+            document.getElementById('submit-review-button').textContent = '📤 送出護理品質稽核紀錄單';
+            document.getElementById('cancel-review-edit').hidden = true;
+            document.getElementById('review-save-status').textContent = '已結束修改，可填寫下一份';
+        }
+        function getSavedReviewerEmail() {
+            try { return localStorage.getItem(reviewerEmailKey) || ''; } catch { return ''; }
+        }
+        function openReviewerLogin() {
+            if (reviewerBusy) return;
+            if (reviewerAuth?.currentUser) { updateReviewerLoginUI(); return; }
+            const email = getSavedReviewerEmail();
+            document.getElementById('reviewer-email').value = email;
+            document.getElementById('reviewer-email-label').hidden = !!email;
+            document.getElementById('reviewer-change-account').hidden = !email;
+            document.getElementById('reviewer-login-help').textContent = email
+                ? '輸入編輯密碼即可登入；登入狀態只保留在本次網頁使用期間。'
+                : '首次使用：輸入在 Firebase 建立的審核帳號與密碼。此瀏覽器會記住帳號，之後只需密碼。';
+            document.getElementById('reviewer-error').textContent = '';
+            document.getElementById('reviewer-password').value = '';
+            if (!document.getElementById('reviewer-dialog').open) document.getElementById('reviewer-dialog').showModal();
+            document.getElementById(email ? 'reviewer-password' : 'reviewer-email').focus();
+        }
+        function changeReviewerAccount() {
+            document.getElementById('reviewer-email-label').hidden = false;
+            document.getElementById('reviewer-email').focus();
+        }
+        function updateReviewerLoginUI() {
+            const user = reviewerAuth?.currentUser;
+            document.getElementById('review-edit-login').hidden = !!user;
+            document.getElementById('review-edit-logout').hidden = !user;
+            document.getElementById('review-edit-login-status').textContent = user
+                ? '🔓 已登入，可編輯當月紀錄' : '尚未登入；編輯需密碼驗證';
+        }
+        async function lockReviewer() {
+            if (reviewerBusy) return;
+            if (editingReview && !confirm('登出將取消尚未儲存的修改，確定登出？')) return;
+            try {
+                if (reviewerAuth) await reviewerAuth.signOut();
+                if (editingReview) cancelReviewEdit();
+                pendingEditReview = pendingReview = null;
+                updateReviewerLoginUI();
+            } catch { showCustomAlert('登出未完成，請重試。'); }
+        }
+        function closeReviewerDialog() {
+            if (reviewerBusy) return;
+            pendingReview = pendingEditReview = null;
+            document.getElementById('reviewer-password').value = '';
+            document.getElementById('reviewer-dialog').close();
+        }
+        document.getElementById('reviewer-dialog').addEventListener('cancel', event => {
+            event.preventDefault(); closeReviewerDialog();
+        });
+        document.getElementById('reviewer-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (reviewerBusy) return;
+            reviewerBusy = true;
+            const errorBox = document.getElementById('reviewer-error');
+            const confirmButton = document.getElementById('reviewer-confirm');
+            const cancelButton = document.getElementById('reviewer-cancel');
+            confirmButton.disabled = cancelButton.disabled = true;
+            errorBox.textContent = '正在驗證密碼…';
+            let signedIn = false;
+            try {
+                if (!reviewerApp) {
+                    reviewerApp = firebase.apps.find(app => app.name === 'reviewer') || firebase.initializeApp(firebaseConfig, 'reviewer');
+                    reviewerAuth = reviewerApp.auth();
+                    reviewerDb = reviewerApp.firestore();
+                    await reviewerAuth.setPersistence(firebase.auth.Auth.Persistence.NONE);
+                }
+                const email = document.getElementById('reviewer-email').value.trim();
+                const credential = await reviewerAuth.signInWithEmailAndPassword(email, document.getElementById('reviewer-password').value);
+                const role = await reviewerDb.collection('reviewers').doc(credential.user.uid).get();
+                if (!role.exists || role.data().role !== 'reviewer' || role.data().active !== true) throw new Error('此帳號尚未設定編輯權限，請建立 reviewers/UID 權限文件。');
+                try { localStorage.setItem(reviewerEmailKey, email); } catch {}
+                signedIn = true;
+            } catch (error) {
+                errorBox.textContent = error.code === 'permission-denied'
+                    ? 'Firebase 規則尚未允許驗證審核權限，請確認規則已發布。'
+                    : String(error.code || '').startsWith('auth/') ? '密碼或帳號驗證失敗，請確認 Firebase 的審核帳號與密碼。'
+                    : error.message || '登入失敗，請重試。';
+                if (reviewerAuth) { try { await reviewerAuth.signOut(); } catch {} }
+            } finally {
+                document.getElementById('reviewer-password').value = '';
+                reviewerBusy = false;
+                confirmButton.disabled = cancelButton.disabled = false;
+                updateReviewerLoginUI();
+            }
+            if (signedIn) {
+                document.getElementById('reviewer-dialog').close();
+                const item = pendingEditReview;
+                pendingEditReview = null;
+                if (item) editReview(item);
+                if (editingReview && pendingReview) await saveReviewModification();
+            }
+        });
+
+        async function saveReviewModification() {
+            if (reviewerBusy || !editingReview || !pendingReview) return;
+            if (!reviewerAuth?.currentUser) { openReviewerLogin(); return; }
+            if (!confirm('確定儲存修改並更新這筆原紀錄？')) return;
+            reviewerBusy = true;
+            const button = document.getElementById('submit-review-button');
+            button.disabled = true;
+            const status = document.getElementById('review-save-status');
+            status.textContent = '正在儲存修改…';
+            let saved = false;
+            try {
+                const user = reviewerAuth.currentUser;
+                const role = await reviewerDb.collection('reviewers').doc(user.uid).get();
+                if (!role.exists || role.data().role !== 'reviewer' || role.data().active !== true) throw new Error('此帳號的編輯權限已停用。');
+                const editing = {...editingReview};
+                const values = {...pendingReview};
+                const ref = reviewerDb.collection(reviewCollection).doc(editing.id);
+                await reviewerDb.runTransaction(async transaction => {
+                    const current = await transaction.get(ref);
+                    if (!current.exists) throw new Error('原紀錄已不存在，無法修改。');
+                    const old = current.data();
+                    if ((Number(old.revisionCount)||0) !== (Number(editing.revisionCount)||0) ||
+                        JSON.stringify(old.updatedAt ?? null) !== JSON.stringify(editing.updatedAt ?? null)) {
+                        throw new Error('此筆已被其他人修改。請取消修改，再從清單重新載入。');
+                    }
+                    transaction.update(ref, {...values,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: role.data().displayName || user.email,
+                        updatedByUid: user.uid, revisionCount: (Number(old.revisionCount)||0)+1});
+                });
+                saved = true;
+            } catch (error) {
+                status.textContent = '修改未儲存；內容保留，可重試';
+                showCustomAlert(error.code === 'permission-denied'
+                    ? 'Firebase 規則拒絕修改，請確認新規則已發布。'
+                    : error.message || '儲存失敗，請重試。');
+            } finally {
+                reviewerBusy = false;
+                button.disabled = false;
+            }
+            if (saved) {
+                cancelReviewEdit();
+                status.textContent = '已更新原紀錄；清單與後台即時同步，可繼續編輯其他紀錄';
+                showCustomAlert('修改已儲存至同一筆 Firebase 紀錄。');
+            }
+        }
+
+        function renderReviewPrint(item) {
+            const line = value => escapeHtml(value || '　');
+            const field = (label, value, suffix = '') => `<div class="flex items-center gap-2 min-w-0"><b class="whitespace-nowrap">${label}：</b><span class="border-b border-black flex-1 min-w-0 break-words">${line(value)}</span>${suffix}</div>`;
+            const signature = (label, value) => `<div class="review-print-signature"><b>${label}：</b><span class="review-print-name">${line(value)}</span></div>`;
+            const section = (label, value, auditor = false) => `<tr>
+                <th scope="row" class="border border-black w-12 text-center leading-loose">${label}</th>
+                <td class="border border-black align-top"><div class="review-print-cell">
+                    <div class="whitespace-pre-wrap break-words">${line(value)}</div>
+                    ${auditor ? `<div class="text-right text-xs">審核者簽章：<span class="inline-block border-b border-black min-w-32 text-center">${line(item.auditor)}</span></div>` : ''}
+                </div></td>
+            </tr>`;
+            document.getElementById('review-print-report').innerHTML = `
+                <div class="text-center mb-6">
+                    <h2 class="text-xl font-extrabold tracking-wide">高雄市立聯合醫院護理科</h2>
+                    <p class="text-xs font-medium mt-0.5">（高雄榮民總醫院營運管理）</p>
+                    <h3 class="text-lg font-bold tracking-widest mt-2">護理品質稽核紀錄單</h3>
+                </div>
+                <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm mb-5">
+                    <div><b>項目：</b><span class="border-b border-black px-2">病人用藥安全查核表</span></div>
+                    ${field('單位', item.unit)}
+                    ${field('份數', item.count, '份')}
+                    <div><b>年月：</b><span class="font-bold">${escapeHtml(formatRocMonth(item.month))}</span></div>
+                    ${field('審核值', item.score, '分')}
+                    ${field('閾值', item.threshold, '分')}
+                </div>
+                <table class="w-full border-collapse border border-black text-sm"><tbody>
+                    ${section('審<br>核<br>結<br>果', item.result, true)}
+                    ${section('原<br>因<br>分<br>析', item.cause)}
+                    ${section('改<br>善<br>措<br>施', item.improvement)}
+                </tbody></table>
+                <div class="review-print-signatures font-bold">
+                    ${signature('單位護理長', item.head)}
+                    ${signature('小組長', item.groupLeader)}
+                    ${signature('品質組組長', item.qualityLeader)}
+                </div>`;
+            document.body.classList.add('print-review-only');
+            window.print();
+        }
+
+        function printReviewForm() {
+            renderReviewPrint(getReviewFormValues());
+        }
+
+        function printReviewHistory(index) {
+            if (!requireAdmin()) return;
+            const item = getReviewHistory(document.getElementById('filter-month').value)[index];
+            if (item) renderReviewPrint(item);
+        }
+
+
+        let openedMedicationHistoryId=null;
+        function medicationHistoryField(label,value){return '<div class="medication-history-field"><span>'+escapeHtml(label)+'</span><div>'+escapeHtml(value===null||value===undefined||value===''?'—':String(value))+'</div></div>'}
+        function renderMedicationHistory(record){
+            const saved=Array.isArray(record.results)?record.results:[];
+            const rows=questions.map(question=>({question,answer:saved.find(answer=>answer&&answer.id===question.id)}));
+            const totals={done:0,undone:0,na:0,missing:0};
+            rows.forEach(({answer})=>{if(answer&&['done','undone','na'].includes(answer.status))totals[answer.status]++;else totals.missing++});
+            const card=({question,answer})=>{
+                const status=answer?.status,labels={done:'做到',undone:'未做到',na:'不適用'},note=getNotApplicableUnitsText(question.id);
+                const choices=['done','undone','na'].map(key=>'<span class="medication-history-choice '+(status===key?'selected status-'+key:'')+'">'+(status===key?'◉':'○')+' '+labels[key]+'</span>').join('');
+                return '<section class="medication-history-question" data-history-question="'+question.id+'"><h4>'+escapeHtml(question.text)+'</h4>'+(note?'<p class="medication-history-na-note">不適用單位：'+escapeHtml(note)+'</p>':'')+'<div class="medication-history-choices" aria-label="查核結果：'+(labels[status]||'未記錄')+'">'+choices+'</div>'+(!labels[status]?'<p class="medication-history-warning">此項查核結果未記錄</p>':'')+'<div class="medication-history-remark"><strong>備註說明</strong><div>'+escapeHtml(answer?.remark||'—')+'</div></div></section>';
+            };
+            return '<article class="medication-history-document"><div class="medication-history-heading"><h2>高雄市立聯合醫院護理科</h2><p>（高雄榮民總醫院營運管理）</p><h3>病人用藥安全查核表</h3><span>歷史紀錄</span></div><div class="medication-history-meta">'+medicationHistoryField('稽核單位',record.unit)+medicationHistoryField('被稽核者姓名 / 床號',record.target)+medicationHistoryField('稽核人員姓名',record.staff)+medicationHistoryField('查核日期',record.date)+'</div><div class="medication-history-counts"><span>做到：<b>'+totals.done+'</b> 項</span><span>未做到：<b>'+totals.undone+'</b> 項</span><span>不適用：<b>'+totals.na+'</b> 項</span>'+(totals.missing?'<span>未記錄：<b>'+totals.missing+'</b> 項</span>':'')+'</div>'+(totals.missing?'<p class="medication-history-warning">部分查核結果未記錄，請依原始資料核對。</p>':'')+'<div class="medication-history-questions">'+rows.map(card).join('')+'</div><div class="medication-history-record-id">'+medicationHistoryField('紀錄編號',record.id)+'</div></article>';
+        }
+        function openMedicationHistory(id){
+            if(!requireAdmin())return;
+            const record=allRecords.find(record=>String(record.id)===String(id));
+            if(!record)return showCustomAlert('找不到這筆稽核紀錄，請重新同步清單。');
+            openedMedicationHistoryId=record.id;
+            document.getElementById('medication-history-content').innerHTML=renderMedicationHistory(record);
+            const dialog=document.getElementById('medication-history-dialog');
+            if(!dialog.open)dialog.showModal();
+            document.getElementById('medication-history-content').scrollTop=0;
+        }
+        function closeMedicationHistory(){const dialog=document.getElementById('medication-history-dialog');if(dialog.open)dialog.close()}
+        function printMedicationHistory(){if(!requireAdmin()||openedMedicationHistoryId===null||!document.getElementById('medication-history-dialog').open)return;document.body.classList.add('print-medication-history');try{window.print()}catch(error){document.body.classList.remove('print-medication-history');throw error}}
+        document.getElementById('medication-history-dialog').addEventListener('close',()=>{openedMedicationHistoryId=null;document.getElementById('medication-history-content').innerHTML='';document.body.classList.remove('print-medication-history')});
+        window.addEventListener('beforeprint',()=>{if(openedMedicationHistoryId!==null&&document.getElementById('medication-history-dialog').open)document.body.classList.add('print-medication-history')});
+        window.addEventListener('afterprint',()=>document.body.classList.remove('print-medication-history'));
+
+        function renderRecordsTable(records) {
+            const tbody = document.getElementById('records-table-body');
+            if (!records || records.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">尚無當月用藥安全稽核紀錄</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            records.forEach(r => {
+                const undoneCount = r.results ? r.results.filter(item => item.status === 'undone').length : 0;
+                html += `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100">
+                        <td class="p-2 font-medium">${escapeHtml(r.date || '')}</td>
+                        <td class="p-2">${escapeHtml(r.unit || '')}</td>
+                        <td class="p-2">${escapeHtml(r.target || '')}</td>
+                        <td class="p-2">${escapeHtml(r.staff || '')}</td>
+                        <td class="p-2 font-bold ${undoneCount > 0 ? 'text-red-600' : 'text-slate-600'}">${undoneCount} 項</td>
+                        <td class="p-2">
+                            <button type="button" data-view-audit="${escapeHtml(r.id)}" class="text-sky-700 hover:text-sky-900 text-xs font-medium cursor-pointer mr-3">查看</button>
+                            <button type="button" data-record-id="${escapeHtml(r.id)}" class="text-red-600 hover:text-red-800 text-xs font-medium cursor-pointer">刪除</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+            tbody.querySelectorAll('[data-view-audit]').forEach(button => {
+                button.addEventListener('click', () => openMedicationHistory(button.dataset.viewAudit));
+            });
+            tbody.querySelectorAll('button[data-record-id]').forEach(button => {
+                button.addEventListener('click', () => deleteRecord(button.dataset.recordId));
+            });
+        }
+
+        async function deleteRecord(id) {
+            showCustomConfirm('確定要永久刪除此筆雲端稽核紀錄嗎？', async () => {
+                if (!requireAdmin()) return;
+                try {
+                    await window.firebaseApp.deleteDoc(window.firebaseApp.doc(db, auditCollection, String(id)));
+                    showCustomAlert('該筆紀錄已自雲端刪除。');
+                } catch (error) {
+                    reportCloudError(error, '刪除稽核紀錄');
+                }
+            });
+        }
+
+        async function clearAllData() {
+            showCustomConfirm('警告：確定要清空雲端資料庫當月所有用藥安全稽核歷史紀錄嗎？', async () => {
+                if (!requireAdmin()) return;
+                const filterMonth = document.getElementById('filter-month').value;
+                const toDelete = allRecords.filter(r => r.date && r.date.startsWith(filterMonth));
+                try {
+                    for (const r of toDelete) {
+                        await window.firebaseApp.deleteDoc(window.firebaseApp.doc(db, auditCollection, String(r.id)));
+                    }
+                    showCustomAlert(`已刪除 ${toDelete.length} 筆當月雲端紀錄。`);
+                } catch (error) {
+                    reportCloudError(error, '清空當月紀錄（部分紀錄可能已刪除）');
+                }
+            });
+        }
+
+        async function loadSampleData() {
+            const filterMonth = document.getElementById('filter-month').value || '2026-09';
+            const rocMonth = formatRocMonth(filterMonth);
+            let mockRecords = [];
+
+            let recordIdCounter = Date.now();
+            unitsList.forEach((u, index) => {
+                let count = (index < 4) ? 5 : 4; 
+                for (let i = 1; i <= count; i++) {
+                    let results = [];
+                    for (let q = 1; q <= 10; q++) {
+                        let isNA = isUnitNotApplicable(u, q);
+                        results.push({ id: q, status: isNA ? 'na' : 'done' });
+                    }
+
+                    const recId = 'mock_' + filterMonth.replace('-', '') + '_' + (recordIdCounter++);
+                    mockRecords.push({
+                        id: recId,
+                        unit: u,
+                        target: `${u}-${100 + i}床 病人`,
+                        date: `${filterMonth}-10`,
+                        staff: "護理師",
+                        results
+                    });
+                }
+            });
+
+            if (!requireAdmin()) return;
+            try {
+                for (const r of mockRecords) {
+                    await window.firebaseApp.setDoc(window.firebaseApp.doc(db, auditCollection, r.id), r);
+                }
+            } catch (error) {
+                reportCloudError(error, '載入示範資料（部分資料可能已寫入）');
+                return;
+            }
+
+            document.getElementById('signer-maker').value = "";
+            document.getElementById('signer-leader').value = "";
+            document.getElementById('signer-qa').value = "";
+            document.getElementById('signer-director').value = "";
+            document.getElementById('signer-date').value = "";
+
+            document.querySelectorAll('input[name="analysis_item"]').forEach(cb => {
+                if(cb.value === "病人安全照護") cb.checked = true;
+            });
+            document.getElementById('ana-title').value = `${rocMonth} 病房用藥安全與三讀五對落實檢討`;
+            document.getElementById('ana-unit').value = "護理科";
+            document.getElementById('ana-problem').value = "部分單位給藥前核對流程偶有未落實或線上簽章延遲情況。";
+            document.getElementById('ana-period').value = rocMonth;
+            document.getElementById('ana-current-desc').value = `經統計 ${rocMonth} 稽核數據，發現在給藥核對與冰箱溫度紀錄上仍有改善空間。`;
+            document.getElementById('ana-solution').value = "1. 加強各病房護理人員用藥安全教育訓練。\n2. 單位主管每日不定時抽查給藥與點班情形。";
+            document.getElementById('ana-future-plan').value = "持續辦理用藥安全品管圈活動，並列入每月交班追蹤重點。";
+            document.getElementById('ana-effect').value = "達成率顯著提升，各病房皆已達到98%以上之品質閾值標準。";
+            document.getElementById('ana-maker').value = "";
+            document.getElementById('ana-leader').value = "";
+            document.getElementById('ana-qa').value = "";
+            document.getElementById('ana-director').value = "";
+            document.getElementById('ana-date').value = "";
+
+            const reportSaved = await manualSaveAdminReport();
+            renderStatsTable();
+            if (reportSaved) showCustomAlert(`已將 ${rocMonth} 的 60 筆示範稽核紀錄與月報寫入 Firebase。`);
+        }
+
+        function handlePrintReport() {
+            window.print();
+        }
+
+        window.addEventListener('afterprint', () => {
+            document.body.classList.remove('print-review-only');
+        });
+
+        function exportToExcel() {
+            const filterMonth = document.getElementById('filter-month').value;
+            const rocMonth = formatRocMonth(filterMonth);
+            const wb = XLSX.utils.book_new();
+
+            // 1. 統計表工作表
+            const statsTableEl = document.getElementById('stats-table-body').closest('table');
+            if (statsTableEl) {
+                const ws1 = XLSX.utils.table_to_sheet(statsTableEl);
+                XLSX.utils.book_append_sheet(wb, ws1, `${rocMonth} 用藥安全統計表`);
+            }
+
+            // 2. 原始明細工作表
+            const filtered = getMonthFilteredRecords();
+            const rawData = filtered.map(r => ({
+                "日期": r.date,
+                "稽核單位": r.unit,
+                "被稽核對象": r.target,
+                "稽核人員": r.staff,
+                "未做到項目數": r.results ? r.results.filter(i => i.status === 'undone').length : 0
+            }));
+            if (rawData.length > 0) {
+                const ws2 = XLSX.utils.json_to_sheet(rawData);
+                XLSX.utils.book_append_sheet(wb, ws2, `${rocMonth} 原始稽核明細`);
+            }
+
+            // 3. 匯出當月已提交的各份護理品質稽核紀錄。
+            const reviewRows = getReviewHistory(filterMonth).map(item => ({
+                '年月': formatRocMonth(item.month), '單位': item.unit, '份數': item.count,
+                '審核值（分）': item.score, '閾值（分）': item.threshold,
+                '審核結果': item.result, '審核者簽章': item.auditor,
+                '原因分析': item.cause, '改善措施': item.improvement,
+                '單位護理長': item.head, '小組長': item.groupLeader,
+                '品質組組長': item.qualityLeader,
+                '來源／送出時間': item.legacy ? '舊版月報資料' : item.createdAt
+            }));
+            const reviewSheet = reviewRows.length ? XLSX.utils.json_to_sheet(reviewRows) :
+                XLSX.utils.aoa_to_sheet([['該月份尚無護理品質稽核紀錄單']]);
+            reviewSheet['!cols'] = [{ wch: 20 }, { wch: 28 }, { wch: 12 }, { wch: 15 }];
+            XLSX.utils.book_append_sheet(wb, reviewSheet, `${rocMonth} 護理品質稽核紀錄`);
+
+            XLSX.writeFile(wb, `高雄市立聯合醫院_病人用藥安全稽核與統計_${rocMonth}.xlsx`);
+        }
+
+        function showCustomAlert(msg) {
+            let modal = document.getElementById('custom-alert-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'custom-alert-modal';
+                modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 text-center space-y-4">
+                        <div class="w-12 h-12 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-900 text-base">系統提示</h4>
+                        <p id="custom-alert-msg" class="text-xs text-slate-600 leading-relaxed"></p>
+                        <button onclick="document.getElementById('custom-alert-modal').classList.add('hidden')" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-medium py-2 rounded-lg text-xs transition cursor-pointer">確定</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            document.getElementById('custom-alert-msg').innerText = msg;
+            modal.classList.remove('hidden');
+        }
+
+        function showCustomConfirm(msg, onConfirm) {
+            let modal = document.getElementById('custom-confirm-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'custom-confirm-modal';
+                modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 text-center space-y-4">
+                        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-900 text-base">確認操作</h4>
+                        <p id="custom-confirm-msg" class="text-xs text-slate-600 leading-relaxed"></p>
+                        <div class="flex gap-2 pt-2">
+                            <button id="custom-confirm-cancel" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 rounded-lg text-xs transition cursor-pointer">取消</button>
+                            <button id="custom-confirm-ok" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg text-xs transition cursor-pointer">確定刪除</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            document.getElementById('custom-confirm-msg').innerText = msg;
+            modal.classList.remove('hidden');
+
+            const okBtn = document.getElementById('custom-confirm-ok');
+            const cancelBtn = document.getElementById('custom-confirm-cancel');
+
+            const newOkBtn = okBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            newOkBtn.onclick = () => {
+                modal.classList.add('hidden');
+                if (onConfirm) onConfirm();
+            };
+            newCancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+            };
+        }
+
+        initUnitSelect();
+        renderFormQuestions();
+        initFirebase();
+    </script>
+</body>
+</html>
