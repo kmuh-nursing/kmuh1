@@ -478,7 +478,7 @@
                         <h3 class="text-lg font-bold text-black tracking-wider mt-2">病 人 用 藥 安 全 查 核 統 計 表</h3>
                         
                         <div class="flex justify-between items-center mt-4 px-2 text-xs font-bold text-black">
-                            <span id="report-month-str">115年09月</span>
+                            <span id="report-month-str"></span>
                             <span>閾值＝98%</span>
                             <span id="report-total-n" class="border border-black rounded-full px-3 py-0.5 font-bold">N=0</span>
                         </div>
@@ -992,11 +992,16 @@
             }
         }
 
-        document.getElementById('audit-date').valueAsDate = new Date();
+        function currentLocalDate() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        document.getElementById('audit-date').value = currentLocalDate();
         const today = new Date();
         const yyyy = today.getFullYear();
         const mm = String(today.getMonth() + 1).padStart(2, '0');
         const defaultMonthStr = `${yyyy}-${mm}`;
+        document.getElementById('report-month-str').textContent = formatRocMonth(defaultMonthStr);
         document.getElementById('filter-month').value = defaultMonthStr;
         document.getElementById('analysis-month-picker').value = defaultMonthStr;
         document.getElementById('review-month-picker').value = defaultMonthStr;
@@ -1185,7 +1190,7 @@
         }
 
         function formatRocMonth(yyyyMm) {
-            if (!yyyyMm) return "115年09月";
+            if (!yyyyMm) yyyyMm = currentLocalDate().slice(0, 7);
             const parts = yyyyMm.split('-');
             if (parts.length === 2) {
                 const y = parseInt(parts[0]) - 1911;
@@ -1853,7 +1858,7 @@
         }
 
         async function loadSampleData() {
-            const filterMonth = document.getElementById('filter-month').value || '2026-09';
+            const filterMonth = document.getElementById('filter-month').value || currentLocalDate().slice(0, 7);
             const rocMonth = formatRocMonth(filterMonth);
             let mockRecords = [];
 
